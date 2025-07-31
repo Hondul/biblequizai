@@ -3,9 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QUIZ_LENGTH, TEXT_MODEL, IMAGE_MODEL } from '../constants';
 import type { QuizData } from '../types';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable is not set.");
-}
+// The API key check is removed from the top level to prevent a startup crash.
+// The SDK will throw an error on API calls if the key is missing,
+// which is handled gracefully in the App component.
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -61,8 +61,8 @@ export const generateQuizQuestions = async (): Promise<QuizData> => {
     const jsonText = response.text.trim();
     const quizData: QuizData = JSON.parse(jsonText);
 
-    if (quizData.questions.length !== QUIZ_LENGTH) {
-        throw new Error("AI did not generate the correct number of questions.");
+    if (!quizData.questions || quizData.questions.length === 0) {
+        throw new Error("AI did not generate any questions.");
     }
 
     return quizData;

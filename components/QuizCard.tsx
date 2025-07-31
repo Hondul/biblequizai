@@ -7,7 +7,7 @@ interface QuizCardProps {
   questionNumber: number;
   totalQuestions: number;
   onAnswer: (isCorrect: boolean) => void;
-  onNext: () => void;
+  onNext: () => Promise<void>;
   isAnswered: boolean;
 }
 
@@ -38,7 +38,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ question, questionNumber, totalQues
     };
 
     const getButtonClass = (option: string) => {
-        if (!selectedAnswer) {
+        if (!isAnswered) {
             return 'bg-white hover:bg-blue-50';
         }
         if (option === question.correctAnswer) {
@@ -69,12 +69,12 @@ const QuizCard: React.FC<QuizCardProps> = ({ question, questionNumber, totalQues
                     <button
                         key={index}
                         onClick={() => handleOptionClick(option)}
-                        disabled={!!selectedAnswer}
+                        disabled={isAnswered}
                         className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 ${getButtonClass(option)}`}
                     >
                         <span className="text-lg font-semibold text-gray-700">{option}</span>
-                        {selectedAnswer && option === question.correctAnswer && <span className="text-green-600"><CheckIcon /></span>}
-                        {selectedAnswer && option === selectedAnswer && option !== question.correctAnswer && <span className="text-red-600"><XIcon /></span>}
+                        {isAnswered && option === question.correctAnswer && <span className="text-green-600"><CheckIcon /></span>}
+                        {isAnswered && option === selectedAnswer && option !== question.correctAnswer && <span className="text-red-600"><XIcon /></span>}
                     </button>
                 ))}
             </div>

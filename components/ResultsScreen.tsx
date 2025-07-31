@@ -1,22 +1,23 @@
 
 import React from 'react';
-import { QUIZ_LENGTH } from '../constants';
 
 interface ResultsScreenProps {
   score: number;
+  totalQuestions: number;
   onPlayAgain: () => void;
 }
 
 const TrophyIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path fillRule="evenodd" d="M4.5 3.75a3 3 0 00-3 3v10.5a3 3 0 003 3h15a3 3 0 003-3V6.75a3 3 0 00-3-3h-15zm4.125 3a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zm-3.875 3.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H5.375a.75.75 0 01-.75-.75zM15.375 8.25a2.25 2.25 0 104.5 0 2.25 2.25 0 00-4.5 0z" clipRule="evenodd" />
-        <path d="M2.25 6.75A.75.75 0 013 6h18a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75H3a.75.75 0 01-.75-.75V6.75z" />
+        <path fillRule="evenodd" d="M16.5 3A3.75 3.75 0 0012.75 0H11.25A3.75 3.75 0 007.5 3.75H4.5A3 3 0 001.5 6.75v10.5A3 3 0 004.5 20.25h15a3 3 0 003-3V6.75a3 3 0 00-3-3H16.5zm-3-1.5a2.25 2.25 0 012.25 2.25H11.25a2.25 2.25 0 012.25-2.25zM4.5 18V6.75a1.5 1.5 0 011.5-1.5h1.528a3.734 3.734 0 00.41 1.5H5.25a.75.75 0 000 1.5h13.5a.75.75 0 000-1.5h-2.688a3.734 3.734 0 00.41-1.5H18a1.5 1.5 0 011.5 1.5V18a1.5 1.5 0 01-1.5 1.5H4.5A1.5 1.5 0 014.5 18z" clipRule="evenodd" />
     </svg>
 );
 
-const ResultsScreen: React.FC<ResultsScreenProps> = ({ score, onPlayAgain }) => {
+
+const ResultsScreen: React.FC<ResultsScreenProps> = ({ score, totalQuestions, onPlayAgain }) => {
     const getMessage = () => {
-        const percentage = (score / QUIZ_LENGTH) * 100;
+        if (totalQuestions === 0) return "Good Try!";
+        const percentage = (score / totalQuestions) * 100;
         if (percentage === 100) return "Wow! Perfect Score!";
         if (percentage >= 75) return "Amazing Job!";
         if (percentage >= 50) return "Great Effort!";
@@ -34,7 +35,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ score, onPlayAgain }) => 
       </p>
       <div className="bg-blue-100 rounded-full w-40 h-40 flex items-center justify-center mb-6 border-4 border-blue-200">
         <span className="text-6xl font-bold text-blue-700">{score}</span>
-        <span className="text-2xl font-semibold text-blue-500 self-end mb-8 ml-1">/{QUIZ_LENGTH}</span>
+        <span className="text-2xl font-semibold text-blue-500 self-end mb-8 ml-1">/{totalQuestions}</span>
       </div>
       <p className="text-gray-600 mb-8 text-lg">
         You are a Bible superstar!

@@ -17,43 +17,46 @@ const App: React.FC = () => {
     const [score, setScore] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchAndSetImageForCurrentQuestion = useCallback(async () => {
-        if (questions.length > 0 && currentQuestionIndex < questions.length) {
-            setGameState(GameState.LOADING_IMAGE);
-            try {
-                const imageUrl = await geminiService.generateQuizImage(questions[currentQuestionIndex].questionText);
-                setCurrentQuestionWithImage({
-                    ...questions[currentQuestionIndex],
-                    imageUrl,
-                });
-                setGameState(GameState.PLAYING);
-            } catch (err) {
-                console.error(err);
-                setError("Sorry, I couldn't create an image for the question.");
-                setGameState(GameState.ERROR);
-            }
-        }
-    }, [questions, currentQuestionIndex]);
-
     useEffect(() => {
-        if (gameState === GameState.LOADING_QUESTIONS && questions.length > 0) {
-            fetchAndSetImageForCurrentQuestion();
+        if (!process.env.API_KEY) {
+            setError("Configuration Error: API_KEY is not set. Please ensure the API key is configured correctly.");
+            setGameState(GameState.ERROR);
         }
-    }, [gameState, questions, fetchAndSetImageForCurrentQuestion]);
+    }, []);
+
+    const loadAndSetImage = useCallback(async (question: QuizQuestion) => {
+        try {
+            const imageUrl = await geminiService.generateQuizImage(question.questionText);
+            setCurrentQuestionWithImage({
+                ...question,
+                imageUrl,
+            });
+            setGameState(GameState.PLAYING);
+        } catch (err) {
+            console.error(err);
+            setError("Sorry, I couldn't create an image for the question.");
+            setGameState(GameState.ERROR);
+        }
+    }, []);
 
     const handleStart = useCallback(async () => {
         setGameState(GameState.LOADING_QUESTIONS);
         setError(null);
+        setCurrentQuestionWithImage(null);
+        setQuestions([]);
+        setCurrentQuestionIndex(0);
+        setScore(0);
         try {
             const data = await geminiService.generateQuizQuestions();
             setQuestions(data.questions);
-            // The useEffect above will trigger the image loading
+            setGameState(GameState.LOADING_IMAGE);
+            await loadAndSetImage(data.questions[0]);
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
             setGameState(GameState.ERROR);
         }
-    }, []);
+    }, [loadAndSetImage]);
 
     const resetGame = useCallback(() => {
         setGameState(GameState.START);
@@ -71,15 +74,16 @@ const App: React.FC = () => {
         setGameState(GameState.SHOWING_ANSWER);
     };
 
-    const handleNext = () => {
+    const handleNext = useCallback(async () => {
         const nextIndex = currentQuestionIndex + 1;
-        if (nextIndex < QUIZ_LENGTH) {
+        if (nextIndex < questions.length) {
             setCurrentQuestionIndex(nextIndex);
-            setGameState(GameState.LOADING_QUESTIONS); // Re-use this state to trigger useEffect
+            setGameState(GameState.LOADING_IMAGE);
+            await loadAndSetImage(questions[nextIndex]);
         } else {
             setGameState(GameState.FINISHED);
         }
-    };
+    }, [currentQuestionIndex, questions, loadAndSetImage]);
 
     const renderContent = () => {
         switch (gameState) {
@@ -98,20 +102,20 @@ const App: React.FC = () => {
                     <QuizCard
                         question={currentQuestionWithImage}
                         questionNumber={currentQuestionIndex + 1}
-                        totalQuestions={QUIZ_LENGTH}
+                        totalQuestions={questions.length}
                         onAnswer={handleAnswer}
                         onNext={handleNext}
                         isAnswered={gameState === GameState.SHOWING_ANSWER}
                     />
                 );
             case GameState.FINISHED:
-                return <ResultsScreen score={score} onPlayAgain={resetGame} />;
+                return <ResultsScreen score={score} totalQuestions={questions.length} onPlayAgain={handleStart} />;
             case GameState.ERROR:
                 return (
-                    <div className="text-center bg-white p-8 rounded-3xl shadow-lg">
+                    <div className="text-center bg-white p-8 rounded-3xl shadow-lg w-full max-w-md mx-auto">
                         <h2 className="text-2xl font-bold text-red-600 mb-4">Oops! Something went wrong.</h2>
                         <p className="text-gray-600 mb-6">{error}</p>
-                        <button onClick={resetGame} className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg">
+                        <button onClick={resetGame} className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors">
                             Try Again
                         </button>
                     </div>
@@ -123,7 +127,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-200 via-cyan-100 to-yellow-100">
-            <main className="w-full">
+            <main className="w-full max-w-lg">
                 {renderContent()}
             </main>
         </div>
