@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { GameState } from './types';
 import type { QuizQuestion, QuestionWithImage } from './types';
@@ -18,8 +17,10 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!process.env.API_KEY) {
-            setError("Configuration Error: API_KEY is not set. Please ensure the API key is configured correctly.");
+        // Safely check for the API key without crashing the app if `process` is undefined.
+        const apiKey = (globalThis as any).process?.env?.API_KEY;
+        if (!apiKey) {
+            setError("Configuration Error: API_KEY is not set. Please ensure the API key is configured correctly in your environment.");
             setGameState(GameState.ERROR);
         }
     }, []);
@@ -59,12 +60,21 @@ const App: React.FC = () => {
     }, [loadAndSetImage]);
 
     const resetGame = useCallback(() => {
-        setGameState(GameState.START);
-        setQuestions([]);
-        setCurrentQuestionIndex(0);
-        setScore(0);
-        setError(null);
-        setCurrentQuestionWithImage(null);
+        // Instead of just going to start, we re-check for the API key.
+        // If the key is still missing, it will go back to the error state.
+        // If the user somehow fixed the environment, it will allow a restart.
+        const apiKey = (globalThis as any).process?.env?.API_KEY;
+        if (!apiKey) {
+            setError("Configuration Error: API_KEY is not set. Please ensure the API key is configured correctly in your environment.");
+            setGameState(GameState.ERROR);
+        } else {
+             setGameState(GameState.START);
+             setQuestions([]);
+             setCurrentQuestionIndex(0);
+             setScore(0);
+             setError(null);
+             setCurrentQuestionWithImage(null);
+        }
     }, []);
 
     const handleAnswer = (isCorrect: boolean) => {

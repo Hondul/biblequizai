@@ -1,13 +1,13 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { QUIZ_LENGTH, TEXT_MODEL, IMAGE_MODEL } from '../constants';
 import type { QuizData } from '../types';
 
-// The API key check is removed from the top level to prevent a startup crash.
-// The SDK will throw an error on API calls if the key is missing,
-// which is handled gracefully in the App component.
+// Safely access the API key to prevent "process is not defined" errors in browser environments.
+const apiKey = (globalThis as any).process?.env?.API_KEY;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Conditionally initialize the AI client. If the API key is not available,
+// the service functions will throw an error that is handled by the App component.
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const quizSchema = {
   type: Type.OBJECT,
@@ -46,6 +46,11 @@ const quizSchema = {
 };
 
 export const generateQuizQuestions = async (): Promise<QuizData> => {
+  if (!ai) {
+    // This error will be caught by the App component and displayed to the user.
+    throw new Error("Configuration Error: API_KEY is not set. Please ensure the API key is configured correctly.");
+  }
+
   const prompt = `You are an expert in early childhood education and biblical studies. Generate a list of ${QUIZ_LENGTH} simple, multiple-choice Bible quiz questions suitable for children aged 3 to 7. The questions should cover well-known, simple Bible stories and figures (e.g., Noah's Ark, David and Goliath, Jonah and the Whale, Creation, Baby Jesus). Each question must have exactly 3 possible answers, one of which is correct. The language used must be extremely simple and easy for a preschooler to understand. For each question, also provide a "funFact" which is a single, simple sentence explaining the story or the answer. Return the response as a JSON object that matches the provided schema.`;
 
   try {
@@ -69,11 +74,17 @@ export const generateQuizQuestions = async (): Promise<QuizData> => {
 
   } catch (error) {
     console.error("Error generating quiz questions:", error);
-    throw new Error("Could not generate the quiz questions. Please check the API key and configuration.");
+    throw new Error("Could not generate the quiz questions. The service might be temporarily unavailable.");
   }
 };
 
 export const generateQuizImage = async (questionText: string): Promise<string> => {
+    if (!ai) {
+        // If the AI client isn't initialized, we can't generate an image.
+        // Return a placeholder so the quiz can continue without a custom image.
+        return "https://placehold.co/512x512/fef9c3/4f46e5?text=Image+Needs+API+Key";
+    }
+    
     const prompt = `A delightful and simple cartoon illustration for a 3-year-old child related to the bible story: "${questionText}". The style should be very friendly, with soft rounded shapes, bright and cheerful primary colors, and a happy atmosphere. No text.`;
     
     try {
@@ -96,6 +107,6 @@ export const generateQuizImage = async (questionText: string): Promise<string> =
     } catch(error) {
         console.error("Error generating image:", error);
         // Return a placeholder or a default image URL on error
-        return "https://picsum.photos/512/512";
+        return "https://placehold.co/512x512/fee2e2/b91c1c?text=Image+Failed+To+Load";
     }
 };
